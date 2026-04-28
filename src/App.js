@@ -1,0 +1,852 @@
+import { useState, useEffect, useRef } from "react";
+
+// ─── PALETTE ────────────────────────────────────────────────────────────────
+const C = {
+  cream: "#FAF7F2",
+  blush: "#F2E0D9",
+  lavender: "#E8E2F0",
+  sage: "#D6E8D9",
+  dustyRose: "#D4A5A0",
+  mauve: "#9B7FA6",
+  softGreen: "#7DAE82",
+  warmGray: "#8C7F7A",
+  deepRose: "#7A3F3A",
+  text: "#3D2E2B",
+  textLight: "#7A6B67",
+  white: "#FFFFFF",
+};
+
+const styles = `
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: ${C.cream}; color: ${C.text}; min-height: 100vh; }
+  .app-container { max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; position: relative; }
+  .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: ${C.white}; border-top: 1px solid ${C.blush}; display: flex; justify-content: space-around; padding: 10px 0 20px; z-index: 100; box-shadow: 0 -4px 20px rgba(155,127,166,0.10); }
+  .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; cursor: pointer; padding: 4px 12px; border-radius: 12px; transition: all 0.2s; }
+  .nav-btn.active .nav-icon { color: ${C.mauve}; }
+  .nav-btn.active .nav-label { color: ${C.mauve}; font-weight: 500; }
+  .nav-btn .nav-icon { font-size: 20px; color: ${C.warmGray}; }
+  .nav-btn .nav-label { font-size: 10px; color: ${C.warmGray}; letter-spacing: 0.5px; }
+  .page-content { flex: 1; padding: 0 0 90px; overflow-y: auto; }
+  .page-header { background: linear-gradient(160deg, ${C.lavender} 0%, ${C.blush} 100%); padding: 48px 24px 32px; position: relative; overflow: hidden; }
+  .page-header::before { content: ''; position: absolute; top: -40px; right: -40px; width: 160px; height: 160px; background: rgba(212,165,160,0.18); border-radius: 50%; }
+  .header-eyebrow { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: ${C.mauve}; font-weight: 500; margin-bottom: 6px; }
+  .header-title { font-family: 'Cormorant Garamond', serif; font-size: 36px; font-weight: 300; color: ${C.text}; line-height: 1.1; }
+  .header-title em { color: ${C.mauve}; font-style: italic; }
+  .header-subtitle { font-size: 13px; color: ${C.warmGray}; margin-top: 8px; line-height: 1.5; }
+  .card { background: ${C.white}; border-radius: 20px; padding: 20px; margin: 12px 16px; box-shadow: 0 2px 12px rgba(122,63,58,0.06); }
+  .card-title { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; color: ${C.text}; margin-bottom: 12px; }
+  .card-label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: ${C.mauve}; font-weight: 500; margin-bottom: 6px; }
+  .pill { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+  .pill-mauve { background: ${C.lavender}; color: ${C.mauve}; }
+  .pill-sage { background: ${C.sage}; color: ${C.softGreen}; }
+  .pill-rose { background: ${C.blush}; color: ${C.deepRose}; }
+  .slider-container { padding: 8px 0; }
+  .custom-slider { width: 100%; height: 6px; -webkit-appearance: none; appearance: none; background: ${C.blush}; border-radius: 10px; outline: none; cursor: pointer; }
+  .custom-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: ${C.mauve}; box-shadow: 0 2px 8px rgba(155,127,166,0.4); }
+  .seance-card { background: ${C.white}; border-radius: 20px; margin: 10px 16px; overflow: hidden; box-shadow: 0 2px 12px rgba(122,63,58,0.06); }
+  .seance-header { padding: 18px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid transparent; transition: border-color 0.3s; }
+  .seance-header.open { border-color: ${C.blush}; }
+  .seance-num { font-family: 'Cormorant Garamond', serif; font-size: 13px; color: ${C.mauve}; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+  .seance-title { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; color: ${C.text}; margin: 4px 0; }
+  .seance-body { padding: 20px; }
+  .step-block { display: flex; gap: 12px; margin-bottom: 16px; align-items: flex-start; }
+  .step-number { width: 28px; height: 28px; border-radius: 50%; background: ${C.lavender}; color: ${C.mauve}; font-size: 13px; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+  .step-text { font-size: 14px; line-height: 1.6; color: ${C.text}; }
+  .step-label { font-weight: 500; color: ${C.mauve}; font-size: 13px; }
+  .timer-display { font-family: 'Cormorant Garamond', serif; font-size: 64px; font-weight: 300; color: ${C.mauve}; text-align: center; letter-spacing: 4px; }
+  .timer-btn { background: ${C.mauve}; color: ${C.white}; border: none; border-radius: 50px; padding: 12px 32px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; margin: 4px; }
+  .timer-btn:hover { background: ${C.deepRose}; }
+  .timer-btn.secondary { background: ${C.blush}; color: ${C.deepRose}; }
+  .emotion-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 12px 0; }
+  .emotion-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; background: ${C.cream}; border: 2px solid transparent; border-radius: 14px; padding: 10px 6px; cursor: pointer; transition: all 0.2s; font-size: 11px; color: ${C.warmGray}; font-family: 'DM Sans', sans-serif; }
+  .emotion-btn.selected { border-color: ${C.mauve}; background: ${C.lavender}; color: ${C.mauve}; font-weight: 500; }
+  .emotion-icon { font-size: 24px; }
+  textarea { width: 100%; border: 1px solid ${C.blush}; border-radius: 14px; padding: 12px 16px; font-family: 'DM Sans', sans-serif; font-size: 14px; line-height: 1.6; color: ${C.text}; background: ${C.cream}; resize: none; outline: none; margin: 8px 0; }
+  textarea:focus { border-color: ${C.mauve}; }
+  .save-btn { width: 100%; background: linear-gradient(135deg, ${C.mauve}, ${C.dustyRose}); color: ${C.white}; border: none; border-radius: 14px; padding: 14px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; margin-top: 8px; transition: opacity 0.2s; }
+  .save-btn:hover { opacity: 0.88; }
+  .q-item { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid ${C.blush}; }
+  .q-item:last-child { border-bottom: none; }
+  .q-text { font-size: 14px; line-height: 1.6; color: ${C.text}; margin-bottom: 12px; }
+  .q-scale { display: flex; gap: 6px; flex-wrap: wrap; }
+  .scale-btn { width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid ${C.blush}; background: ${C.white}; font-size: 13px; cursor: pointer; transition: all 0.2s; color: ${C.text}; font-weight: 500; font-family: 'DM Sans', sans-serif; }
+  .scale-btn.selected { background: ${C.mauve}; border-color: ${C.mauve}; color: ${C.white}; }
+  .score-card { background: linear-gradient(135deg, ${C.lavender}, ${C.blush}); border-radius: 20px; padding: 24px; margin: 12px 16px; text-align: center; }
+  .score-num { font-family: 'Cormorant Garamond', serif; font-size: 56px; font-weight: 300; color: ${C.mauve}; }
+  .score-label { font-size: 14px; color: ${C.warmGray}; }
+  .resource-card { background: ${C.white}; border-radius: 20px; margin: 10px 16px; overflow: hidden; box-shadow: 0 2px 12px rgba(122,63,58,0.06); }
+  .resource-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+  .resource-icon { font-size: 22px; margin-right: 10px; }
+  .resource-body { padding: 0 20px 20px; font-size: 14px; line-height: 1.7; color: ${C.warmGray}; }
+  .check-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid ${C.cream}; cursor: pointer; }
+  .check-box { width: 22px; height: 22px; border-radius: 8px; border: 2px solid ${C.blush}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
+  .check-box.checked { background: ${C.softGreen}; border-color: ${C.softGreen}; }
+  .check-text { font-size: 14px; color: ${C.text}; flex: 1; }
+  .check-text.done { text-decoration: line-through; color: ${C.warmGray}; }
+  .quote-box { background: linear-gradient(135deg, ${C.sage}, ${C.lavender}); border-radius: 20px; padding: 24px; margin: 12px 16px; position: relative; }
+  .quote-mark { font-family: 'Cormorant Garamond', serif; font-size: 80px; color: rgba(155,127,166,0.2); position: absolute; top: -10px; left: 16px; line-height: 1; }
+  .quote-text { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-style: italic; color: ${C.text}; line-height: 1.5; position: relative; z-index: 1; margin-top: 10px; }
+  .quote-author { font-size: 12px; color: ${C.warmGray}; margin-top: 10px; letter-spacing: 0.5px; }
+  .history-item { background: ${C.white}; border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; }
+  .history-date { font-size: 12px; color: ${C.warmGray}; white-space: nowrap; }
+  .mood-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .progress-bar-bg { height: 6px; background: ${C.blush}; border-radius: 10px; overflow: hidden; margin: 8px 0; }
+  .progress-bar-fill { height: 100%; border-radius: 10px; background: linear-gradient(90deg, ${C.mauve}, ${C.dustyRose}); transition: width 0.5s ease; }
+  .onboarding { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: 32px 24px; background: linear-gradient(160deg, ${C.lavender} 0%, ${C.cream} 60%); }
+  .onboarding-title { font-family: 'Cormorant Garamond', serif; font-size: 42px; font-weight: 300; color: ${C.text}; line-height: 1.1; margin-bottom: 8px; }
+  .onboarding-title em { color: ${C.mauve}; font-style: italic; }
+  .form-label { font-size: 13px; font-weight: 500; color: ${C.warmGray}; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; display: block; }
+  .tri-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
+  .tri-btn { background: ${C.white}; border: 2px solid ${C.blush}; border-radius: 16px; padding: 14px 8px; cursor: pointer; transition: all 0.2s; text-align: center; font-family: 'DM Sans', sans-serif; }
+  .tri-btn.selected { border-color: ${C.mauve}; background: ${C.lavender}; }
+  .tri-icon { font-size: 28px; margin-bottom: 4px; }
+  .tri-label { font-size: 12px; color: ${C.text}; font-weight: 500; }
+  .tri-sub { font-size: 10px; color: ${C.warmGray}; }
+  .name-input { width: 100%; border: 1.5px solid ${C.blush}; border-radius: 14px; padding: 14px 16px; font-family: 'DM Sans', sans-serif; font-size: 16px; color: ${C.text}; background: ${C.white}; outline: none; margin-bottom: 20px; }
+  .name-input:focus { border-color: ${C.mauve}; }
+  .phase-card { border-radius: 16px; padding: 18px; margin-bottom: 12px; }
+  .phase-card.latence { background: ${C.sage}; }
+  .phase-card.active-phase { background: ${C.blush}; }
+  .phase-card.expulsion { background: ${C.lavender}; }
+  .phase-title { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 600; color: ${C.text}; margin-bottom: 8px; }
+  .technique-list { list-style: none; }
+  .technique-list li { font-size: 13px; color: ${C.text}; padding: 4px 0; display: flex; align-items: center; gap: 8px; }
+  .technique-list li::before { content: '◆'; font-size: 7px; color: ${C.mauve}; }
+  .fobs-track { width: 100%; height: 8px; background: linear-gradient(90deg, ${C.sage}, ${C.blush}, #e0a0a0); border-radius: 10px; position: relative; margin: 16px 0 8px; }
+  .tab-row { display: flex; gap: 8px; padding: 12px 16px 0; overflow-x: auto; }
+  .tab-btn { padding: 8px 16px; border-radius: 20px; border: none; cursor: pointer; font-size: 12px; font-family: 'DM Sans', sans-serif; white-space: nowrap; }
+`;
+
+// ─── DATA ─────────────────────────────────────────────────────────────────────
+
+const QUOTES = [
+  { text: "Votre corps sait comment faire. Votre seul travail est de lui faire confiance.", author: "Ma Naissance Sereine" },
+  { text: "Chaque contraction vous rapproche de votre bébé. Respirez et laissez venir.", author: "Ma Naissance Sereine" },
+  { text: "Vous n'êtes pas seule. Votre force est plus grande que votre peur.", author: "Ma Naissance Sereine" },
+  { text: "Transformer la peur en ressource, c'est le premier pas vers une naissance sereine.", author: "Guide TCC & Sophrologie" },
+  { text: "Votre calme intérieur est votre meilleure préparation pour le Jour J.", author: "Ma Naissance Sereine" },
+];
+
+const CHECKLIST = [
+  "Exercice de cohérence cardiaque (5 min)",
+  "Écouter l'audio de sophrologie",
+  "Remplir mon journal émotionnel",
+  "Pratiquer la respiration rythmée",
+  "Moment calme avec mon conjoint",
+  "Visualisation positive (accouchement serein)",
+  "Relaxation musculaire progressive",
+];
+
+const SEANCES = [
+  {
+    num: "Séance 1", title: "Maîtrise du souffle", icon: "🌬️", color: C.lavender,
+    objectif: "Apprendre à réguler votre système nerveux par la respiration pour diminuer l'anxiété et le cercle peur–tension–douleur.",
+    tcc: {
+      title: "Identification des pensées anxiogènes",
+      steps: [
+        { label: "Nommez la pensée", text: "Identifiez une pensée liée à l'accouchement qui vous génère de l'anxiété. Ex : « Je ne supporterai jamais la douleur »" },
+        { label: "Évaluez la croyance", text: "Sur une échelle de 0 à 10, à quel point croyez-vous cette pensée en ce moment ?" },
+        { label: "Questionnez-la", text: "Quelles preuves soutiennent cette pensée ? Quelles preuves la contredisent réellement ?" },
+        { label: "Reformulez", text: "Remplacez par : « J'ai des stratégies pour gérer la douleur et le stress. Mon corps est préparé. »" },
+      ]
+    },
+    sophro: {
+      title: "Cohérence cardiaque — 5 minutes",
+      steps: [
+        { label: "Position", text: "Asseyez-vous confortablement, dos droit, mains sur les cuisses, yeux doux ou fermés." },
+        { label: "Inspiration", text: "Inspirez lentement par le nez pendant exactement 5 secondes. Sentez votre ventre se gonfler." },
+        { label: "Expiration", text: "Expirez doucement par la bouche pendant 5 secondes. Videz complètement les poumons." },
+        { label: "Répétez", text: "Continuez ce rythme 5s/5s pendant 5 minutes = 6 cycles par minute. Utilisez le minuteur de l'application." },
+      ]
+    },
+    domicile: "Pratiquez la cohérence cardiaque 2 fois par jour : matin au réveil et soir avant de dormir. 5 minutes suffisent."
+  },
+  {
+    num: "Séance 2", title: "Sécurisation mentale", icon: "🧠", color: C.blush,
+    objectif: "Restructurer les pensées catastrophiques et développer un sentiment intérieur de sécurité et de confiance.",
+    tcc: {
+      title: "Restructuration cognitive",
+      steps: [
+        { label: "Le cercle peur–tension–douleur", text: "La peur génère des tensions musculaires qui amplifient la douleur. Comprendre ce cercle permet de l'interrompre consciemment." },
+        { label: "Pensée automatique", text: "Notez une pensée catastrophique. Ex : « Quelque chose va mal se passer » ou « Je vais perdre le contrôle »" },
+        { label: "Type de distorsion", text: "Identifiez : dramatisation ? pensée tout-ou-rien ? lecture de pensée ? catastrophisation ?" },
+        { label: "Alternative réaliste", text: "Formulez une pensée équilibrée : « Je suis entourée d'une équipe compétente. J'ai des ressources et des outils. »" },
+      ]
+    },
+    sophro: {
+      title: "Lieu de sécurité intérieure",
+      steps: [
+        { label: "Détente", text: "Allongez-vous confortablement. Fermez les yeux. Respirez profondément 3 fois en lâchant prise." },
+        { label: "Imaginez", text: "Visualisez un lieu où vous vous sentez totalement en sécurité et en paix : une plage, une forêt, un jardin..." },
+        { label: "Explorez avec tous vos sens", text: "Qu'entendez-vous ? Quelles odeurs ? Quelles couleurs ? Quelle température sur votre peau ?" },
+        { label: "Ancrez", text: "Placez une main sur votre cœur. Revenez à ce lieu intérieur chaque fois que l'anxiété monte." },
+      ]
+    },
+    domicile: "Revisitez votre lieu de sécurité 5 minutes chaque soir avant de dormir. Renforcez l'ancrage progressivement."
+  },
+  {
+    num: "Séance 3", title: "Transformation de la douleur", icon: "🌊", color: C.sage,
+    objectif: "Modifier la perception de la douleur et apprendre à l'accueillir plutôt qu'à la combattre.",
+    tcc: {
+      title: "Réévaluation cognitive de la douleur",
+      steps: [
+        { label: "La contraction comme vague", text: "La douleur de l'accouchement est purposive : elle rapproche de votre bébé. Ce n'est pas une douleur de maladie." },
+        { label: "Focalisation attentionnelle", text: "Pendant une sensation intense, focalisez sur votre respiration, pas sur la douleur. Dirigez votre attention." },
+        { label: "Acceptation active", text: "Accueillez la sensation sans résistance : « Cette vague passe. Je reste dans le souffle. Je suis capable. »" },
+        { label: "Auto-efficacité", text: "Répétez intérieurement : « J'ai traversé des choses difficiles. Je suis capable de gérer cela. »" },
+      ]
+    },
+    sophro: {
+      title: "Visualisation de la vague",
+      steps: [
+        { label: "Détente profonde", text: "Installez-vous confortablement. Respirez en cohérence cardiaque pendant 3 minutes." },
+        { label: "L'océan serein", text: "Imaginez-vous sur une plage sereine. Devant vous, des vagues douces et rythmées, prévisibles." },
+        { label: "La contraction est une vague", text: "Quand vous sentez une tension, visualisez la vague qui monte... atteint son sommet... puis redescend doucement et s'en va." },
+        { label: "Entre les vagues", text: "Entre chaque vague, il y a du calme et du repos. Profitez pleinement de cet espace de paix et de récupération." },
+      ]
+    },
+    domicile: "Pratiquez la visualisation de la vague chaque jour. Associez chaque expiration à l'image de la vague qui redescend paisiblement."
+  },
+  {
+    num: "Séance 4", title: "Préparation au Jour J", icon: "✨", color: C.lavender,
+    objectif: "Consolider tous les apprentissages du programme et se préparer mentalement à vivre l'accouchement avec présence et confiance.",
+    tcc: {
+      title: "Mon plan d'action cognitif",
+      steps: [
+        { label: "Mon affirmation principale", text: "Choisissez une phrase ressource. Ex : « Je suis forte, préparée et entourée. Mon corps sait quoi faire. »" },
+        { label: "Mes 3 ressources personnelles", text: "Listez ce qui vous soutient : votre force intérieure, la présence de votre conjoint, la confiance en l'équipe médicale..." },
+        { label: "Plan si la peur monte", text: "1. Respiration cohérence cardiaque. 2. Mon lieu de sécurité intérieure. 3. Ma phrase ressource. 4. Contact avec le conjoint." },
+        { label: "Communication avec l'équipe", text: "Préparez vos préférences : lumière tamisée, musique, positions, présence du conjoint. Présentez votre plan de naissance." },
+      ]
+    },
+    sophro: {
+      title: "Visualisation de l'accouchement serein",
+      steps: [
+        { label: "Détente totale", text: "Allongez-vous dans un endroit calme et confortable. Fermez les yeux. Respirez profondément 5 fois en relâchant tout." },
+        { label: "Visualisez le Jour J", text: "Imaginez-vous à la maternité, calme et confiante. Votre conjoint est à vos côtés, présent et rassurant." },
+        { label: "Chaque phase avec sérénité", text: "Vivez mentalement chaque phase du travail. Vous respirez, vous gérez, vous êtes pleinement présente et maîtresse." },
+        { label: "Le moment de la naissance", text: "Visualisez le moment où votre bébé arrive dans vos bras. Ressentez la joie, le soulagement, l'amour immense." },
+      ]
+    },
+    domicile: "Répétez cette visualisation chaque jour jusqu'à l'accouchement. Pratiquez les audios quotidiennement. Vous êtes prête."
+  },
+];
+
+const RESSOURCES = [
+  { icon: "🧬", title: "Comprendre l'anxiété prénatale", content: "La grossesse est une période de vulnérabilité émotionnelle normale. Les changements hormonaux augmentent la sensibilité émotionnelle. L'ambivalence (joie + inquiétude) est normative. La peur de l'accouchement (tokophobie) touche 7 à 14% des femmes. Identifier vos peurs est la première étape pour les transformer en ressources." },
+  { icon: "💪", title: "Le cercle peur – tension – douleur", content: "La peur active le système nerveux sympathique (réponse de stress). Cette activation provoque des tensions musculaires involontaires. Les tensions augmentent la perception de la douleur. En brisant ce cercle par la respiration consciente et la relaxation, vous reprenez le contrôle sur votre expérience de l'accouchement." },
+  { icon: "🤝", title: "Le rôle de votre conjoint", content: "Votre partenaire est une ressource thérapeutique précieuse. Il peut pratiquer la respiration avec vous (co-régulation émotionnelle), assurer un environnement calme, vous offrir un contact physique rassurant, guider vos visualisations, et être votre médiateur avec l'équipe médicale le Jour J. Le soutien conjugal est un facteur protecteur majeur contre l'anxiété prénatale." },
+  { icon: "🏥", title: "Communiquer avec l'équipe médicale", content: "Préparez votre plan de naissance avec vos préférences. Exprimez vos besoins en matière de gestion de la douleur. Informez l'équipe de vos techniques de sophrologie. N'hésitez pas à demander des explications sur chaque étape. Votre équipe est là pour vous accompagner — parlez-leur de vos peurs, elles peuvent adapter leur prise en charge." },
+  { icon: "🔬", title: "La tokophobie : vous n'êtes pas seule", content: "La tokophobie primaire affecte les femmes qui n'ont pas encore accouché, souvent liée à l'inconnu ou à des expériences observées négatives. La tokophobie secondaire survient après un accouchement difficile ou traumatique. Ses symptômes incluent : anxiété anticipatoire intense, pensées catastrophiques, insomnie, tensions somatiques. Un accompagnement adapté réduit significativement ces effets." },
+  { icon: "⭐", title: "Renforcer votre auto-efficacité", content: "L'auto-efficacité, c'est votre confiance en votre capacité à gérer l'accouchement (Bandura, 1997). Elle se renforce par la pratique régulière des exercices, par la reconnaissance de vos réussites passées, par le soutien de votre entourage, et par la reformulation positive de vos pensées. Plus votre sentiment d'auto-efficacité est élevé, moins vous percevrez la douleur intensément." },
+];
+
+const EMOTIONS = [
+  { icon: "😌", label: "Sereine" }, { icon: "😊", label: "Heureuse" },
+  { icon: "😔", label: "Triste" }, { icon: "😰", label: "Anxieuse" },
+  { icon: "😤", label: "Fatiguée" }, { icon: "💪", label: "Forte" },
+  { icon: "😨", label: "Inquiète" }, { icon: "🥰", label: "Confiante" },
+];
+
+const WDEQ = [
+  "Je pense à l'accouchement et je me sens très anxieuse",
+  "Je pense que l'accouchement sera très douloureux",
+  "J'ai peur de perdre le contrôle pendant l'accouchement",
+  "Je pense que les contractions seront insupportables",
+  "J'ai peur que quelque chose tourne mal pour moi",
+  "J'ai peur que quelque chose tourne mal pour mon bébé",
+  "Je pense que je ne serai pas capable de gérer la douleur",
+  "L'idée de l'accouchement me terrifie",
+];
+
+const GSES = [
+  "Je peux toujours résoudre des problèmes difficiles si j'essaie vraiment",
+  "Si quelqu'un s'oppose à moi, je peux trouver une solution",
+  "Il m'est facile de m'accrocher à mes objectifs",
+  "Je suis confiante de pouvoir faire face à des situations inattendues",
+  "Grâce à ma débrouillardise, je sais gérer des situations imprévues",
+  "Je peux trouver une solution à presque n'importe quel problème",
+  "Je reste calme face aux difficultés car je fais confiance à mes capacités",
+  "Quand je suis confrontée à un problème, je trouve plusieurs solutions",
+];
+
+// ─── TIMER HOOK ──────────────────────────────────────────────────────────────
+function useTimer(initial = 300) {
+  const [seconds, setSeconds] = useState(initial);
+  const [running, setRunning] = useState(false);
+  const [phase, setPhase] = useState("inhale");
+  const intervalRef = useRef(null);
+  const phaseRef = useRef(null);
+
+  useEffect(() => {
+    if (running) {
+      intervalRef.current = setInterval(() => {
+        setSeconds(s => { if (s <= 1) { setRunning(false); return initial; } return s - 1; });
+      }, 1000);
+    }
+    return () => clearInterval(intervalRef.current);
+  }, [running, initial]);
+
+  useEffect(() => {
+    if (running) {
+      phaseRef.current = setInterval(() => setPhase(p => p === "inhale" ? "exhale" : "inhale"), 5000);
+      return () => clearInterval(phaseRef.current);
+    }
+  }, [running]);
+
+  const fmt = s => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  const reset = () => { setRunning(false); setSeconds(initial); setPhase("inhale"); };
+  return { seconds, running, setRunning, phase, fmt, reset };
+}
+
+// ─── SEANCE CARD ─────────────────────────────────────────────────────────────
+function SeanceCard({ s }) {
+  const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState("tcc");
+  return (
+    <div className="seance-card">
+      <div className={`seance-header ${open ? "open" : ""}`} onClick={() => setOpen(!open)}>
+        <div>
+          <div className="seance-num">{s.num}</div>
+          <div className="seance-title">{s.icon} {s.title}</div>
+          <div style={{ fontSize: 12, color: C.warmGray, marginTop: 2 }}>{s.objectif.substring(0, 65)}...</div>
+        </div>
+        <span style={{ fontSize: 18, color: C.mauve, transition: "transform 0.3s", display: "block", transform: open ? "rotate(180deg)" : "none" }}>↓</span>
+      </div>
+      {open && (
+        <div className="seance-body">
+          <p style={{ fontSize: 13, color: C.warmGray, lineHeight: 1.7, marginBottom: 16 }}>{s.objectif}</p>
+          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+            {["tcc", "sophro"].map(t => (
+              <button key={t} onClick={() => setTab(t)} style={{ padding: "8px 20px", borderRadius: 20, border: "none", cursor: "pointer", background: tab === t ? C.mauve : C.cream, color: tab === t ? C.white : C.warmGray, fontSize: 13, fontWeight: 500, fontFamily: "'DM Sans', sans-serif" }}>
+                {t === "tcc" ? "🧠 TCC" : "🌿 Sophrologie"}
+              </button>
+            ))}
+          </div>
+          <div style={{ background: C.cream, borderRadius: 14, padding: 16 }}>
+            <div className="card-label">{tab === "tcc" ? s.tcc.title : s.sophro.title}</div>
+            {(tab === "tcc" ? s.tcc.steps : s.sophro.steps).map((step, i) => (
+              <div key={i} className="step-block">
+                <div className="step-number">{i + 1}</div>
+                <div className="step-text"><span className="step-label">{step.label} — </span>{step.text}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ background: C.lavender, borderRadius: 14, padding: 14, marginTop: 12 }}>
+            <div style={{ fontSize: 11, color: C.mauve, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>À pratiquer chez vous</div>
+            <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6 }}>{s.domicile}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── RESOURCE CARD ───────────────────────────────────────────────────────────
+function ResourceCard({ r }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="resource-card">
+      <div className="resource-header" onClick={() => setOpen(!open)}>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <span className="resource-icon">{r.icon}</span>
+          <span style={{ fontWeight: 500, fontSize: 15, color: C.text }}>{r.title}</span>
+        </div>
+        <span style={{ color: C.mauve, fontSize: 20, transform: open ? "rotate(45deg)" : "none", transition: "transform 0.3s", display: "block" }}>+</span>
+      </div>
+      {open && <div className="resource-body">{r.content}</div>}
+    </div>
+  );
+}
+
+// ─── SCREENS ─────────────────────────────────────────────────────────────────
+
+function HomeScreen({ profile }) {
+  const q = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+  const trimLabel = ["", "1er trimestre", "2ème trimestre", "3ème trimestre"][profile.trimestre];
+  const progress = (profile.trimestre / 3) * 100;
+  return (
+    <div>
+      <div className="page-header">
+        <div className="header-eyebrow">Ma Naissance Sereine</div>
+        <div className="header-title">Bonjour,<br /><em>{profile.prenom || "future maman"}</em> 🌸</div>
+        <div className="header-subtitle">Votre cheminement vers une naissance sereine · TCC & Sophrologie</div>
+      </div>
+      <div className="card">
+        <div className="card-label">Votre parcours</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 600 }}>{trimLabel}</div>
+          <span className="pill pill-mauve">{Math.round(progress)}%</span>
+        </div>
+        <div className="progress-bar-bg"><div className="progress-bar-fill" style={{ width: `${progress}%` }} /></div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: C.warmGray, marginTop: 4 }}>
+          <span>1er trim.</span><span>2ème trim.</span><span>3ème trim.</span>
+        </div>
+      </div>
+      <div className="quote-box">
+        <div className="quote-mark">"</div>
+        <div className="quote-text">{q.text}</div>
+        <div className="quote-author">— {q.author}</div>
+      </div>
+      <div className="card">
+        <div className="card-label">Programme en 4 séances</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 8 }}>
+          {SEANCES.map((s, i) => (
+            <div key={i} style={{ background: C.cream, borderRadius: 14, padding: 12, textAlign: "center" }}>
+              <div style={{ fontSize: 24, marginBottom: 4 }}>{s.icon}</div>
+              <div style={{ fontSize: 11, color: C.mauve, fontWeight: 600 }}>{s.num}</div>
+              <div style={{ fontSize: 13, color: C.text, fontWeight: 500, marginTop: 2 }}>{s.title}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="card">
+        <div className="card-label">Structure du guide</div>
+        {["Cadre théorique — transformations psychologiques de la grossesse", "Peur de l'accouchement (tokophobie) — définition et facteurs", "Cercle peur – tension – douleur — mécanismes et interruption", "Apports des TCC — restructuration cognitive", "Apports de la sophrologie — corps et esprit", "Boîte à outils d'évaluation clinique (W-DEQ, FOBS, GSES)", "Plan d'action pour le Jour J — phase par phase"].map((item, i) => (
+          <div key={i} style={{ display: "flex", gap: 10, padding: "8px 0", borderBottom: i < 6 ? `1px solid ${C.cream}` : "none", alignItems: "flex-start" }}>
+            <span style={{ color: C.mauve, fontSize: 14, marginTop: 1 }}>◆</span>
+            <span style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>{item}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ padding: "0 16px 0", marginBottom: 8 }}>
+        <div style={{ background: C.lavender, borderRadius: 16, padding: 16 }}>
+          <div style={{ fontSize: 12, color: C.mauve, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Guide « Ma Naissance Sereine »</div>
+          <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6 }}>GECEM OUAFA, Psychologue · Encadrant M. TAIBINE<br />Faculté Sciences Humaines et Sociales Euromed</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SeancesScreen() {
+  return (
+    <div>
+      <div className="page-header">
+        <div className="header-eyebrow">Programme thérapeutique</div>
+        <div className="header-title">Mes <em>Séances</em></div>
+        <div className="header-subtitle">4 séances progressives · Cliquez pour dérouler · TCC & Sophrologie</div>
+      </div>
+      <div style={{ padding: "8px 0" }}>
+        {SEANCES.map((s, i) => <SeanceCard key={i} s={s} />)}
+      </div>
+      <div className="card">
+        <div className="card-label">Travail à domicile</div>
+        <p style={{ fontSize: 14, color: C.warmGray, lineHeight: 1.7 }}>
+          La répétition des exercices est essentielle. Pratiquez quotidiennement avec les supports audio. L'implication de votre conjoint renforce l'efficacité du programme grâce à la co-régulation émotionnelle.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function JournalScreen() {
+  const [emotion, setEmotion] = useState(null);
+  const [pensee, setPensee] = useState("");
+  const [reformulation, setReformulation] = useState("");
+  const [exercice, setExercice] = useState(null);
+  const [notes, setNotes] = useState("");
+  const [history, setHistory] = useState(() => { try { return JSON.parse(localStorage.getItem("mns_journal") || "[]"); } catch { return []; } });
+  const [saved, setSaved] = useState(false);
+
+  const save = () => {
+    const entry = { date: new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }), emotion, pensee, reformulation, exercice, notes, ts: Date.now() };
+    const newH = [entry, ...history].slice(0, 30);
+    setHistory(newH);
+    try { localStorage.setItem("mns_journal", JSON.stringify(newH)); } catch {}
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+    setEmotion(null); setPensee(""); setReformulation(""); setExercice(null); setNotes("");
+  };
+
+  const moodColor = (em) => ({ Sereine: C.softGreen, Heureuse: "#E8B86D", Triste: C.mauve, Anxieuse: "#D4867A", Fatiguée: C.warmGray, Forte: C.softGreen, Inquiète: "#D4A5A0", Confiante: C.softGreen })[em] || C.warmGray;
+
+  return (
+    <div>
+      <div className="page-header">
+        <div className="header-eyebrow">Mon espace d'écriture</div>
+        <div className="header-title">Journal <em>émotionnel</em></div>
+        <div className="header-subtitle">Observez · Comprenez · Transformez</div>
+      </div>
+      <div className="card">
+        <div className="card-label">Comment je me sens aujourd'hui ?</div>
+        <div className="emotion-grid">
+          {EMOTIONS.map(e => (
+            <button key={e.label} className={`emotion-btn ${emotion === e.label ? "selected" : ""}`} onClick={() => setEmotion(e.label)}>
+              <span className="emotion-icon">{e.icon}</span>
+              <span>{e.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="card">
+        <div className="card-label">Pensée automatique (TCC)</div>
+        <textarea rows={3} placeholder="Quelle pensée me préoccupe en ce moment ? Ex : 'J'ai peur de ne pas être à la hauteur...'" value={pensee} onChange={e => setPensee(e.target.value)} />
+        <div className="card-label" style={{ marginTop: 8 }}>Ma reformulation positive</div>
+        <textarea rows={2} placeholder="Comment puis-je voir cette pensée autrement ? Quelle alternative réaliste ?" value={reformulation} onChange={e => setReformulation(e.target.value)} />
+      </div>
+      <div className="card">
+        <div className="card-label">Exercice pratiqué aujourd'hui</div>
+        <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+          {["Cohérence cardiaque", "Visualisation", "Relaxation", "Lieu de sécurité", "Aucun"].map(ex => (
+            <button key={ex} onClick={() => setExercice(ex)} style={{ padding: "8px 14px", borderRadius: 20, border: `2px solid ${exercice === ex ? C.mauve : C.blush}`, background: exercice === ex ? C.lavender : C.white, color: exercice === ex ? C.mauve : C.warmGray, fontSize: 12, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", fontWeight: exercice === ex ? 500 : 400 }}>{ex}</button>
+          ))}
+        </div>
+      </div>
+      <div className="card">
+        <div className="card-label">Notes libres</div>
+        <textarea rows={4} placeholder="Ce que j'ai ressenti, observé, dont je suis fière aujourd'hui. Espace libre sans jugement..." value={notes} onChange={e => setNotes(e.target.value)} />
+        <button className="save-btn" onClick={save}>{saved ? "✓ Enregistré !" : "Sauvegarder mon entrée"}</button>
+      </div>
+      {history.length > 0 && (
+        <div className="card">
+          <div className="card-label">Mes entrées ({history.length})</div>
+          {history.slice(0, 8).map((h, i) => (
+            <div key={i} className="history-item">
+              <div className="mood-dot" style={{ background: moodColor(h.emotion) }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{h.emotion || "—"}</div>
+                {h.pensee && <div style={{ fontSize: 12, color: C.warmGray, marginTop: 2 }}>{h.pensee.substring(0, 55)}...</div>}
+              </div>
+              <div className="history-date">{h.date}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BienEtreScreen() {
+  const t5 = useTimer(300);
+  const t10 = useTimer(600);
+  const [checks, setChecks] = useState(() => { try { return JSON.parse(localStorage.getItem("mns_checks") || "{}"); } catch { return {}; } });
+
+  const toggleCheck = (item) => {
+    const n = { ...checks, [item]: !checks[item] };
+    setChecks(n);
+    try { localStorage.setItem("mns_checks", JSON.stringify(n)); } catch {}
+  };
+
+  const done = Object.values(checks).filter(Boolean).length;
+
+  return (
+    <div>
+      <div className="page-header">
+        <div className="header-eyebrow">Pratiques quotidiennes</div>
+        <div className="header-title">Mon espace <em>bien-être</em></div>
+        <div className="header-subtitle">Entraînez-vous chaque jour pour le Jour J</div>
+      </div>
+      <div className="card">
+        <div className="card-label">Cohérence cardiaque · 5 minutes</div>
+        <div style={{ textAlign: "center", padding: "16px 0" }}>
+          <div className="timer-display">{t5.fmt(t5.seconds)}</div>
+          <div style={{ fontSize: 14, color: C.mauve, fontWeight: 500, margin: "10px 0 18px", minHeight: 22 }}>
+            {t5.running ? (t5.phase === "inhale" ? "🌬️ Inspirez par le nez... (5 secondes)" : "💨 Expirez par la bouche... (5 secondes)") : "Inspirez 5s · Expirez 5s · 6 cycles/minute"}
+          </div>
+          <div style={{ display: "flex", justifyContent: "center", gap: 8 }}>
+            <button className="timer-btn" onClick={() => t5.setRunning(r => !r)}>{t5.running ? "⏸ Pause" : "▶ Démarrer"}</button>
+            <button className="timer-btn secondary" onClick={t5.reset}>↺ Reset</button>
+          </div>
+        </div>
+      </div>
+      <div className="card">
+        <div className="card-label">Sophrologie guidée · 10 minutes</div>
+        <div style={{ textAlign: "center", padding: "16px 0" }}>
+          <div className="timer-display" style={{ fontSize: 48 }}>{t10.fmt(t10.seconds)}</div>
+          <div style={{ fontSize: 14, color: C.mauve, fontWeight: 500, margin: "10px 0 18px", minHeight: 22 }}>
+            {t10.running ? (t10.phase === "inhale" ? "🌊 Visualisez votre lieu serein..." : "✨ Imaginez l'accouchement serein...") : "Lieu de sécurité · Visualisation de la vague"}
+          </div>
+          <div style={{ display: "flex", justifyContent: "center", gap: 8 }}>
+            <button className="timer-btn" onClick={() => t10.setRunning(r => !r)}>{t10.running ? "⏸ Pause" : "▶ Démarrer"}</button>
+            <button className="timer-btn secondary" onClick={t10.reset}>↺ Reset</button>
+          </div>
+        </div>
+      </div>
+      <div className="card">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div className="card-label" style={{ margin: 0 }}>Mes pratiques de la semaine</div>
+          <span className="pill pill-sage">{done}/{CHECKLIST.length}</span>
+        </div>
+        <div className="progress-bar-bg"><div className="progress-bar-fill" style={{ width: `${(done / CHECKLIST.length) * 100}%`, background: `linear-gradient(90deg, ${C.softGreen}, ${C.mauve})` }} /></div>
+        <div style={{ marginTop: 12 }}>
+          {CHECKLIST.map((item, i) => (
+            <div key={i} className="check-item" onClick={() => toggleCheck(item)}>
+              <div className={`check-box ${checks[item] ? "checked" : ""}`}>{checks[item] && <span style={{ color: C.white, fontSize: 12 }}>✓</span>}</div>
+              <span className={`check-text ${checks[item] ? "done" : ""}`}>{item}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="quote-box">
+        <div className="quote-mark">"</div>
+        <div className="quote-text">Votre corps sait comment faire. Chaque respiration vous rapproche de votre bébé et renforce votre confiance profonde.</div>
+        <div className="quote-author">— Affirmation du programme Ma Naissance Sereine</div>
+      </div>
+    </div>
+  );
+}
+
+function OutilsScreen() {
+  const [tab, setTab] = useState("fobs");
+  const [fobs, setFobs] = useState(50);
+  const [wdeq, setWdeq] = useState({});
+  const [gses, setGses] = useState({});
+  const [showScore, setShowScore] = useState(false);
+
+  const wScore = Object.values(wdeq).reduce((a, b) => a + b, 0);
+  const gScore = Object.values(gses).reduce((a, b) => a + b, 0);
+  const wLevel = wScore < 37 ? { label: "Peur faible", color: C.softGreen } : wScore < 66 ? { label: "Peur modérée", color: "#E8B86D" } : { label: "Tokophobie — accompagnement conseillé", color: "#D4867A" };
+  const gLevel = gScore >= 24 ? { label: "Auto-efficacité élevée", color: C.softGreen } : gScore >= 16 ? { label: "Auto-efficacité modérée", color: "#E8B86D" } : { label: "Auto-efficacité à renforcer", color: "#D4867A" };
+
+  const TABS = [{ id: "fobs", label: "FOBS" }, { id: "wdeq", label: "W-DEQ" }, { id: "gses", label: "GSES" }, { id: "jourj", label: "Jour J" }];
+
+  return (
+    <div>
+      <div className="page-header">
+        <div className="header-eyebrow">Boîte à outils clinique</div>
+        <div className="header-title">Mes <em>évaluations</em></div>
+        <div className="header-subtitle">Mesurer pour mieux avancer · Outils validés scientifiquement</div>
+      </div>
+      <div className="tab-row">
+        {TABS.map(t => (
+          <button key={t.id} className="tab-btn" onClick={() => { setTab(t.id); setShowScore(false); }} style={{ background: tab === t.id ? C.mauve : C.white, color: tab === t.id ? C.white : C.warmGray, fontWeight: tab === t.id ? 500 : 400, boxShadow: tab === t.id ? "none" : "0 1px 4px rgba(0,0,0,0.08)" }}>{t.label}</button>
+        ))}
+      </div>
+
+      {tab === "fobs" && (
+        <div className="card">
+          <div className="card-label">Fear of Birth Scale (FOBS)</div>
+          <p style={{ fontSize: 13, color: C.warmGray, lineHeight: 1.6, marginBottom: 16 }}>Évaluation rapide et répétée de votre niveau de peur. À compléter séance après séance pour suivre votre évolution (Haines et al., 2011).</p>
+          <div style={{ textAlign: "center", marginBottom: 8 }}>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 56, color: C.mauve, lineHeight: 1 }}>{fobs}</div>
+            <div style={{ fontSize: 13, color: C.warmGray }}>/100</div>
+          </div>
+          <div className="fobs-track" />
+          <div className="slider-container">
+            <input type="range" min={0} max={100} step={1} value={fobs} onChange={e => setFobs(Number(e.target.value))} className="custom-slider" />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: C.warmGray, marginBottom: 16 }}><span>Aucune peur</span><span>Peur intense</span></div>
+          <div style={{ background: fobs < 30 ? C.sage : fobs < 60 ? C.blush : C.lavender, borderRadius: 12, padding: 14, textAlign: "center" }}>
+            <div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>
+              {fobs < 30 ? "🌿 Vous êtes plutôt sereine" : fobs < 60 ? "🌸 Une anxiété présente et gérable" : "💜 La peur est forte — continuez les exercices quotidiens"}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === "wdeq" && (
+        <div>
+          <div className="card">
+            <div className="card-label">W-DEQ — Peur de l'accouchement</div>
+            <p style={{ fontSize: 13, color: C.warmGray, lineHeight: 1.6, marginBottom: 16 }}>Wijma Delivery Expectancy Questionnaire (Wijma, Wijma & Zar, 1998). Pour chaque item, indiquez votre accord de 0 (pas du tout) à 5 (tout à fait).</p>
+            {WDEQ.map((item, i) => (
+              <div key={i} className="q-item">
+                <div className="q-text">{i + 1}. {item}</div>
+                <div className="q-scale">
+                  {[0, 1, 2, 3, 4, 5].map(v => (
+                    <button key={v} className={`scale-btn ${wdeq[i] === v ? "selected" : ""}`} onClick={() => setWdeq(p => ({ ...p, [i]: v }))}>{v}</button>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <button className="save-btn" onClick={() => setShowScore(true)}>Calculer mon score</button>
+          </div>
+          {showScore && (
+            <div className="score-card">
+              <div className="card-label" style={{ color: C.mauve }}>Score W-DEQ</div>
+              <div className="score-num">{wScore}</div>
+              <div className="score-label">/ {WDEQ.length * 5}</div>
+              <div style={{ marginTop: 12 }}><span className="pill" style={{ background: C.white, color: wLevel.color, fontWeight: 600 }}>{wLevel.label}</span></div>
+              <div style={{ fontSize: 12, color: C.warmGray, marginTop: 10, lineHeight: 1.5 }}>Score &lt; 37 : peur faible · 38–65 : modérée · ≥ 66 : tokophobie</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === "gses" && (
+        <div>
+          <div className="card">
+            <div className="card-label">GSES — Auto-efficacité générale</div>
+            <p style={{ fontSize: 13, color: C.warmGray, lineHeight: 1.6, marginBottom: 16 }}>General Self-Efficacy Scale (Schwarzer & Jerusalem, 1995). À quel point ces affirmations vous correspondent-elles ? (1 = pas du tout · 4 = tout à fait)</p>
+            {GSES.map((item, i) => (
+              <div key={i} className="q-item">
+                <div className="q-text">{i + 1}. {item}</div>
+                <div className="q-scale">
+                  {[1, 2, 3, 4].map(v => (
+                    <button key={v} className={`scale-btn ${gses[i] === v ? "selected" : ""}`} onClick={() => setGses(p => ({ ...p, [i]: v }))}>{v}</button>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <button className="save-btn" onClick={() => setShowScore(true)}>Calculer mon score</button>
+          </div>
+          {showScore && (
+            <div className="score-card">
+              <div className="card-label" style={{ color: C.mauve }}>Score GSES</div>
+              <div className="score-num">{gScore}</div>
+              <div className="score-label">/ {GSES.length * 4}</div>
+              <div style={{ marginTop: 12 }}><span className="pill" style={{ background: C.white, color: gLevel.color, fontWeight: 600 }}>{gLevel.label}</span></div>
+              <div style={{ fontSize: 12, color: C.warmGray, marginTop: 10, lineHeight: 1.5 }}>Score élevé → grande confiance en vos capacités d'adaptation et de gestion du stress</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === "jourj" && (
+        <div>
+          <div className="card">
+            <div className="card-label">Plan d'action pour le Jour J</div>
+            <p style={{ fontSize: 14, color: C.warmGray, lineHeight: 1.6, marginBottom: 8 }}>Mobilisez les compétences acquises à chaque phase du travail.</p>
+          </div>
+          <div style={{ padding: "0 16px" }}>
+            <div className="phase-card latence">
+              <div className="phase-title">🌱 Phase de latence</div>
+              <div style={{ fontSize: 12, color: C.warmGray, marginBottom: 8 }}>Début du travail · Contractions irrégulières · Objectif : calme et énergie</div>
+              <ul className="technique-list">
+                <li>Respiration lente et profonde (cohérence cardiaque)</li>
+                <li>Écouter les audios de sophrologie</li>
+                <li>Repos et conservation de l'énergie</li>
+                <li>Contact rassurant avec le conjoint</li>
+              </ul>
+            </div>
+            <div className="phase-card active-phase">
+              <div className="phase-title">🌊 Phase active</div>
+              <div style={{ fontSize: 12, color: C.warmGray, marginBottom: 8 }}>Contractions intenses · Objectif : gérer la douleur et maintenir le contrôle</div>
+              <ul className="technique-list">
+                <li>Respiration rythmée pendant les contractions</li>
+                <li>Visualisation de la vague (monte et redescend)</li>
+                <li>Relâchement musculaire entre les contractions</li>
+                <li>Phrase ressource intérieure</li>
+              </ul>
+            </div>
+            <div className="phase-card expulsion">
+              <div className="phase-title">✨ Phase d'expulsion</div>
+              <div style={{ fontSize: 12, color: C.warmGray, marginBottom: 8 }}>Poussée · Objectif : accompagner activement le travail</div>
+              <ul className="technique-list">
+                <li>Synchronisation respiration – poussée</li>
+                <li>Concentration sur les sensations corporelles</li>
+                <li>Encouragement verbal du conjoint</li>
+                <li>Confiance totale en votre corps</li>
+              </ul>
+            </div>
+          </div>
+          <div className="card">
+            <div className="card-label">Mon affirmation pour le Jour J</div>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, color: C.mauve, fontStyle: "italic", lineHeight: 1.5, padding: "8px 0" }}>
+              "Je suis forte, préparée et entourée. Mon corps sait quoi faire. Chaque contraction me rapproche de mon bébé."
+            </div>
+          </div>
+          <div className="card">
+            <div className="card-label">Si la peur monte — Mon plan</div>
+            {["Respiration cohérence cardiaque (5s/5s)", "Mon lieu de sécurité intérieure", "Ma phrase ressource personnelle", "Contact physique avec mon conjoint", "Communiquer mes besoins à l'équipe médicale"].map((r, i) => (
+              <div key={i} style={{ display: "flex", gap: 12, padding: "10px 0", borderBottom: i < 4 ? `1px solid ${C.cream}` : "none", alignItems: "center" }}>
+                <div style={{ width: 26, height: 26, borderRadius: "50%", background: C.lavender, color: C.mauve, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</div>
+                <span style={{ fontSize: 14, color: C.text }}>{r}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RessourcesScreen() {
+  return (
+    <div>
+      <div className="page-header">
+        <div className="header-eyebrow">Psychoéducation</div>
+        <div className="header-title">Mes <em>ressources</em></div>
+        <div className="header-subtitle">Comprendre pour mieux gérer · Cliquez pour lire</div>
+      </div>
+      <div style={{ padding: "8px 0" }}>
+        {RESSOURCES.map((r, i) => <ResourceCard key={i} r={r} />)}
+      </div>
+      <div style={{ padding: "8px 16px 0" }}>
+        <div style={{ background: C.lavender, borderRadius: 20, padding: 20 }}>
+          <div className="card-label">Note importante</div>
+          <p style={{ fontSize: 13, color: C.text, lineHeight: 1.7 }}>Ce guide est un outil d'accompagnement complémentaire. Il ne remplace pas un suivi psychologique ou médical. En cas d'anxiété intense ou de score W-DEQ ≥ 66, consultez un professionnel de santé mentale périnatale.</p>
+          <div style={{ marginTop: 12, padding: "10px 14px", background: C.white, borderRadius: 12 }}>
+            <div style={{ fontSize: 12, color: C.mauve, fontWeight: 600, marginBottom: 4 }}>GECEM OUAFA, Psychologue</div>
+            <div style={{ fontSize: 12, color: C.warmGray }}>Encadrant M. TAIBINE · FSHSE Euromed</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── ONBOARDING ──────────────────────────────────────────────────────────────
+function Onboarding({ onComplete }) {
+  const [prenom, setPrenom] = useState("");
+  const [trimestre, setTrimestre] = useState(null);
+  const tris = [{ t: 1, icon: "🌱", label: "1er", sub: "1–12 sem." }, { t: 2, icon: "🌸", label: "2ème", sub: "13–26 sem." }, { t: 3, icon: "🌺", label: "3ème", sub: "27–40 sem." }];
+  return (
+    <div className="onboarding">
+      <div style={{ fontSize: 48, marginBottom: 16 }}>🤰</div>
+      <div className="onboarding-title">Ma <em>Naissance</em><br />Sereine</div>
+      <p style={{ fontSize: 14, color: C.warmGray, lineHeight: 1.7, margin: "12px 0 28px" }}>Un accompagnement bienveillant pour transformer la peur en ressource et vivre l'accouchement avec présence, maîtrise et confiance. Vous n'êtes pas seule.</p>
+      <label className="form-label">Votre prénom</label>
+      <input className="name-input" placeholder="Ex : Amira, Yasmine, Marie..." value={prenom} onChange={e => setPrenom(e.target.value)} />
+      <label className="form-label">Votre trimestre actuel</label>
+      <div className="tri-grid">
+        {tris.map(t => (
+          <button key={t.t} className={`tri-btn ${trimestre === t.t ? "selected" : ""}`} onClick={() => setTrimestre(t.t)}>
+            <div className="tri-icon">{t.icon}</div>
+            <div className="tri-label">{t.label}</div>
+            <div className="tri-sub">{t.sub}</div>
+          </button>
+        ))}
+      </div>
+      <button className="save-btn" onClick={() => trimestre && onComplete({ prenom: prenom.trim() || "future maman", trimestre })} style={{ opacity: trimestre ? 1 : 0.5, cursor: trimestre ? "pointer" : "default" }}>
+        Commencer mon parcours →
+      </button>
+      <p style={{ fontSize: 11, color: C.warmGray, textAlign: "center", marginTop: 16, lineHeight: 1.5 }}>
+        Vos données restent sur votre appareil uniquement.<br />Guide TCC & Sophrologie · FSHSE Euromed
+      </p>
+    </div>
+  );
+}
+
+// ─── APP ─────────────────────────────────────────────────────────────────────
+const NAV = [
+  { id: "home", icon: "🏠", label: "Accueil" },
+  { id: "seances", icon: "💜", label: "Séances" },
+  { id: "journal", icon: "📓", label: "Journal" },
+  { id: "bienetre", icon: "🌸", label: "Bien-être" },
+  { id: "outils", icon: "🔬", label: "Outils" },
+];
+
+export default function App() {
+  const [profile, setProfile] = useState(() => { try { return JSON.parse(localStorage.getItem("mns_profile") || "null"); } catch { return null; } });
+  const [tab, setTab] = useState("home");
+
+  const complete = (p) => { setProfile(p); try { localStorage.setItem("mns_profile", JSON.stringify(p)); } catch {} };
+
+  if (!profile) return (<><style>{styles}</style><div className="app-container"><Onboarding onComplete={complete} /></div></>);
+
+  return (
+    <>
+      <style>{styles}</style>
+      <div className="app-container">
+        <div className="page-content">
+          {tab === "home" && <HomeScreen profile={profile} />}
+          {tab === "seances" && <SeancesScreen />}
+          {tab === "journal" && <JournalScreen />}
+          {tab === "bienetre" && <BienEtreScreen />}
+          {tab === "outils" && <OutilsScreen />}
+        </div>
+        <nav className="bottom-nav">
+          {NAV.map(n => (
+            <button key={n.id} className={`nav-btn ${tab === n.id ? "active" : ""}`} onClick={() => setTab(n.id)}>
+              <span className="nav-icon">{n.icon}</span>
+              <span className="nav-label">{n.label}</span>
+            </button>
+          ))}
+        </nav>
+      </div>
+    </>
+  );
+}
