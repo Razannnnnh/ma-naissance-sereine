@@ -20,7 +20,7 @@ const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'DM Sans', sans-serif; background: ${C.cream}; color: ${C.text}; min-height: 100vh; }
-  .app-container { max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; position: relative; }
+  .app-container { max-width: 900px;; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; position: relative; }
   .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: ${C.white}; border-top: 1px solid ${C.blush}; display: flex; justify-content: space-around; padding: 10px 0 20px; z-index: 100; box-shadow: 0 -4px 20px rgba(155,127,166,0.10); }
   .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; cursor: pointer; padding: 4px 12px; border-radius: 12px; transition: all 0.2s; }
   .nav-btn.active .nav-icon { color: ${C.mauve}; }
