@@ -753,7 +753,7 @@ function OutilsScreen() {
   );
 }
 
-// function RessourcesScreen() {
+function RessourcesScreen() {
   return (
     <div>
       <div className="page-header">
@@ -850,3 +850,4 @@ export default function App() {
     </>
   );
 }
+
