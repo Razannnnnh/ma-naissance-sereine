@@ -753,6 +753,41 @@ function OutilsScreen() {
   );
 }
 
+// function RessourcesScreen() {
+  return (
+    <div>
+      <div className="page-header">
+        <div className="header-eyebrow">Psychoéducation</div>
+        <div className="header-title">Mes <em>ressources</em></div>
+        <div className="header-subtitle">Comprendre pour mieux gérer · Cliquez pour lire</div>
+      </div>
+      <div style={{ padding: "8px 0" }}>
+        {RESSOURCES.map((r, i) => <ResourceCard key={i} r={r} />)}
+      </div>
+      <div style={{ padding: "8px 16px 0" }}>
+        <div style={{ background: C.lavender, borderRadius: 20, padding: 20 }}>
+          <div className="card-label">Note importante</div>
+          <p style={{ fontSize: 13, color: C.text, lineHeight: 1.7 }}>Ce guide est un outil d'accompagnement complémentaire. Il ne remplace pas un suivi psychologique ou médical. En cas d'anxiété intense ou de score W-DEQ ≥ 66, consultez un professionnel de santé mentale périnatale.</p>
+          <div style={{ marginTop: 12, padding: "10px 14px", background: C.white, borderRadius: 12 }}>
+            <div style={{ fontSize: 12, color: C.mauve, fontWeight: 600, marginBottom: 4 }}>GECEM OUAFA, Psychologue</div>
+            <div style={{ fontSize: 12, color: C.warmGray }}>Encadrant M. TAIBINE · FSHSE Euromed</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── ONBOARDING ──────────────────────────────────────────────────────────────
+function Onboarding({ onComplete }) {
+  const [prenom, setPrenom] = useState("");
+  const [trimestre, setTrimestre] = useState(null);
+  const tris = [{ t: 1, icon: "🌱", label: "1er", sub: "1–12 sem." }, { t: 2, icon: "🌸", label: "2ème", sub: "13–26 sem." }, { t: 3, icon: "🌺", label: "3ème", sub: "27–40 sem." }];
+  return (
+    <div className="onboarding">
+      <div style={{ fontSize: 48, marginBottom: 16 }}>🤰</div>
+      <div className="onboarding-title">Ma <em>Naissance</em><br />Sereine</div>
+      <p style={{ fontSize: 14, color: C.warmGray, lineHeight: 1.7, margin: "12px 0 28px" }}>Un accompagnement bienveillant pour transformer la peur en ressource et vivre l'accouchement avec présence, maîtrise et confiance. Vous n'êtes pas seule.</p>
       <label className="form-label">Votre prénom</label>
       <input className="name-input" placeholder="Ex : Amira, Yasmine, Marie..." value={prenom} onChange={e => setPrenom(e.target.value)} />
       <label className="form-label">Votre trimestre actuel</label>
